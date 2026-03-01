@@ -5,6 +5,7 @@ use crate::utils::config::AppConfig;
 use fred::prelude::Client as RedisClient;
 use fred::error::{Error as RedisError, ErrorKind as RedisErrorKind};
 use fred::interfaces::RedisJsonInterface;
+use tokio_stream::StreamExt;
 use strum_macros::{AsRefStr, Display};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -48,6 +49,21 @@ pub async fn store_in_redis(client: &RedisClient, data: Vec<SatelliteGP>) -> Res
         client.json_set::<(), _, _, _>(key, ".", json_data, None).await?;
     }
     Ok(())
+}
+
+pub async fn get_from_redis(client: &RedisClient) -> Result<Vec<SatelliteGP>, RedisError> {
+    let mut stream = client.scan_buffered("sat:gp:*", Some(100), None);
+    let mut results = Vec::new();
+    while let Some(key_res) = stream.next().await {
+        let key = key_res?;
+        if let Some(key_str) = key.as_str() {
+            let json_data: String = client.json_get(key_str, None::<&str>, None::<&str>, None::<&str>, ".").await?;
+            let sat: SatelliteGP = serde_json::from_str(&json_data)
+                .map_err(|e| RedisError::new(RedisErrorKind::Parse, e.to_string()))?;
+            results.push(sat);
+        }
+    }
+    Ok(results)
 }
 
 pub async fn sweep_orbital_data(group: Groups, client: &Client, config: &AppConfig) -> Result<Vec<SatelliteGP>, Error> {
