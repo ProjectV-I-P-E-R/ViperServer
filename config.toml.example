@@ -1,0 +1,17 @@
+debug_level = "INFO"
+build_version = "1.0"
+
+[api_keys]
+adsb_exchange = "prod_key"
+ais_stream = "prod_key"
+n2yo = "prod_key"
+wigle_net_key = "prod_key"
+wigle_net_name = "prod_username"
+open_cell_id = "prod_key"
+shodan = "prod_key"
+
+[endpoints]
+celestrak_gp = "https://celestrak.org/NORAD/elements/gp.php"
+nasa_firms = "https://firms.modaps.eosdis.nasa.gov/api"
+overpass_api = "https://overpass-api.de/api/interpreter"
+redis = "redis://127.0.0.1:6379"

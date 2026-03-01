@@ -22,3 +22,5 @@ target/
 .direnv/
 .idea/
 .temp/
+
+config.toml
