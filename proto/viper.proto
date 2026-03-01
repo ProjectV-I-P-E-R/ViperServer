@@ -1,0 +1,105 @@
+syntax = "proto3";
+package viper;
+import "google/protobuf/timestamp.proto";
+
+service IntelligenceEngine {
+    rpc StreamGlobalMovement(AreaOfInterest) returns (stream GeospatialEntity);
+    rpc StreamTacticalAlerts(AlertSubscription) returns (stream TacticalAlert);
+    rpc ExecuteTacticalScan(ScanRequest) returns (ScanResult);
+    rpc GetVulnerabilityReport(VulnerabilityQuery) returns (VulnerabilityReport);
+    rpc ResolveIdentityLink(IdentityQuery) returns (IdentityReport);
+}
+
+message AreaOfInterest {
+    double min_lat = 1;
+    double max_lat = 2;
+    double min_lon = 3;
+    double max_lon = 4;
+    uint32 zoom_level = 5;
+}
+
+message GeospatialEntity {
+    string id = 1;
+    string callsign = 2;
+    double lat = 3;
+    double lon = 4;
+    float altitude = 5;
+    float heading = 6;
+    float velocity = 7;
+    EntityType type = 8;
+    map<string, string> tags = 9;
+}
+
+enum EntityType {
+    AIRCRAFT = 0;
+    VESSEL = 1;
+    SATELLITE = 2;
+    SIGNAL_NODE = 3;
+}
+
+message ScanRequest {
+    string target_ip = 1;
+    uint32 intensity_level = 2;
+    bool enable_os_fingerprinting = 3;
+}
+
+message ScanResult {
+    string target_id = 1;
+    repeated PortInfo open_ports = 2;
+    string os_guess = 3;
+    float confidence_score = 4;
+    google.protobuf.Timestamp timestamp = 5;
+}
+
+message PortInfo {
+    uint32 port = 1;
+    string service = 2;
+    string version = 3;
+}
+
+message VulnerabilityQuery {
+    string cpe_string = 1;
+    string hardware_id = 2;
+}
+
+message VulnerabilityReport {
+    repeated CVE cves = 1;
+    uint32 threat_score = 2;
+}
+
+message CVE {
+    string cve_id = 1;
+    float cvss_score = 2;
+    string description = 3;
+    string exploit_status = 4;
+}
+
+message AlertSubscription {
+    repeated EntityType filter = 1;
+    float min_priority = 2;
+}
+
+message TacticalAlert {
+    string alert_id = 1;
+    string title = 2;
+    string details = 3;
+    double lat = 4;
+    double lon = 5;
+    uint32 priority = 6;
+    google.protobuf.Timestamp timestamp = 7;
+}
+
+message IdentityQuery {
+    oneof identifier {
+        string phone_number = 1;
+        string ip_address = 2;
+        string mac_address = 3;
+    }
+}
+
+message IdentityReport {
+    string carrier_info = 1;
+    string hlr_status = 2;
+    string physical_location_hint = 3;
+    repeated string linked_accounts = 4;
+}
