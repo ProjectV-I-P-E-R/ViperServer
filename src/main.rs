@@ -12,9 +12,6 @@ mod engine;
 mod harvester;
 mod utils;
 
-pub mod viper;
-
-
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenvy::dotenv().ok();
@@ -32,18 +29,21 @@ async fn main() -> Result<(), Error> {
     debug!("VIPER: Configuration loaded. Version: {}", &config.build_version);
 
     let _http_client = create_http_client(&config)?;
-    let _redis_client = create_redis_client(&config).await?;
+    let redis_client = create_redis_client(&config).await?;
     trace!("VIPER: Redis and HTTP clients initialized.");
 
-    let addr = "[::0]:50051".parse()?;
-    let engine = comms::grpc_server::ViperIntelligenceEngine;
-
-    info!("VIPER: Starting gRPC server on {}", addr);
-
-    tonic::transport::Server::builder()
-        .add_service(viper::intelligence_engine_server::IntelligenceEngineServer::new(engine))
-        .serve(addr)
-        .await?;
+    let viper_engine = engine::Engine::new();
+    
+    harvester::orbital::start_orbital_harvester(
+        viper_engine.clone(),
+        redis_client.clone(),
+        config.clone()
+    ).await;
+    
+    let addr = "[::0]:50051";
+    info!("VIPER: Starting WebSocket server on {}", addr);
+    
+    comms::ws_server::start_ws_server(addr, viper_engine).await?;
 
     Ok(())
 }
