@@ -1,19 +1,48 @@
-use crate::viper::intelligence_engine_server::IntelligenceEngine;
-use crate::viper::{AreaOfInterest, GeospatialEntity, AlertSubscription, TacticalAlert, ScanRequest, ScanResult, VulnerabilityQuery, VulnerabilityReport, IdentityQuery, IdentityReport};
 use tonic::{Request, Response, Status};
 use tokio_stream::Stream;
 use std::pin::Pin;
+use crate::viper::{
+    AreaOfInterest, OrbitalElementsResponse, GeospatialEntity, AlertSubscription,
+    TacticalAlert, ScanRequest, ScanResult, VulnerabilityQuery, VulnerabilityReport,
+    IdentityQuery, IdentityReport,
+    intelligence_engine_server::IntelligenceEngine
+};
 
 pub struct ViperIntelligenceEngine;
 
 #[tonic::async_trait]
 impl IntelligenceEngine for ViperIntelligenceEngine {
-    type StreamGlobalMovementStream = Pin<Box<dyn Stream<Item = Result<GeospatialEntity, Status>> + Send>>;
-
-    async fn stream_global_movement(
+    async fn fetch_orbital_objects(
         &self,
         _request: Request<AreaOfInterest>,
-    ) -> Result<Response<Self::StreamGlobalMovementStream>, Status> {
+    ) -> Result<Response<OrbitalElementsResponse>, Status> {
+        Err(Status::unimplemented("Not yet implemented"))
+    }
+
+    type StreamAircraftStream = Pin<Box<dyn Stream<Item = Result<GeospatialEntity, Status>> + Send>>;
+
+    async fn stream_aircraft(
+        &self,
+        _request: Request<AreaOfInterest>,
+    ) -> Result<Response<Self::StreamAircraftStream>, Status> {
+        Err(Status::unimplemented("Not yet implemented"))
+    }
+
+    type StreamVesselsStream = Pin<Box<dyn Stream<Item = Result<GeospatialEntity, Status>> + Send>>;
+
+    async fn stream_vessels(
+        &self,
+        _request: Request<AreaOfInterest>,
+    ) -> Result<Response<Self::StreamVesselsStream>, Status> {
+        Err(Status::unimplemented("Not yet implemented"))
+    }
+
+    type StreamSignalNodesStream = Pin<Box<dyn Stream<Item = Result<GeospatialEntity, Status>> + Send>>;
+
+    async fn stream_signal_nodes(
+        &self,
+        _request: Request<AreaOfInterest>,
+    ) -> Result<Response<Self::StreamSignalNodesStream>, Status> {
         Err(Status::unimplemented("Not yet implemented"))
     }
 
