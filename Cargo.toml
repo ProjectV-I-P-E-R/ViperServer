@@ -10,7 +10,7 @@ ort = "2.0.0-rc.11"
 rstar = "0.12.2"
 sqlx = "0.8.6"
 tokio = { version =  "1.49.0", features = ["macros", "rt-multi-thread"] }
-tokio-tungstenite = "0.28.0"
+tokio-tungstenite = { version = "0.28.0", features = ["rustls-tls-native-roots"] }
 zstd = "0.13.3"
 reqwest = { version = "0.13.2", features = ["json"] }
 anyhow = "1.0.102"
@@ -27,3 +27,9 @@ tokio-stream = "0.1.18"
 futures = "0.3.32"
 crossbeam-skiplist = "0.1.3"
 rmp-serde = "1.3.1"
+axum = "0.8.8"
+async-trait = "0.1.89"
+tower-http = { version = "0.6.0", features = ["cors"] }
+futures-util = "0.3.32"
+flate2 = "1.1.9"
+csv = "1.4.0"
