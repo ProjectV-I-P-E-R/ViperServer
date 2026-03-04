@@ -13,6 +13,8 @@ use log::{info, error};
 
 use crate::engine::{Engine, TrackedObject, EntityType};
 use std::collections::HashMap;
+use tokio::sync::RwLock;
+use crate::utils::http::create_http_client;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -85,20 +87,21 @@ pub async fn sweep_orbital_data(group: Groups, client: &Client, config: &AppConf
     Ok(data)
 }
 
+pub type OrbitalCache = Arc<RwLock<HashMap<u32, SatelliteGP>>>;
+
 pub async fn start_orbital_harvester(
-    engine: Arc<Engine>,
+    cache: OrbitalCache,
     redis: RedisClient,
     config: AppConfig,
-) {
-    let http_client = Client::new();
+) -> Result<(), Error> {
+    let http_client = create_http_client(&config)?;
 
     match get_from_redis(&redis).await {
         Ok(sats) => {
             info!("Loaded {} orbital objects from Redis", sats.len());
+            let mut cache_write = cache.write().await;
             for sat in sats {
-                if let Ok(obj) = sat_to_tracked_object(&sat) {
-                    engine.update_object(obj);
-                }
+                cache_write.insert(sat.norad_cat_id, sat);
             }
         },
         Err(e) => {
@@ -117,26 +120,24 @@ pub async fn start_orbital_harvester(
                 match sweep_orbital_data(group, &http_client, &config).await {
                     Ok(sats) => {
                         let mut changed = Vec::new();
+                        let mut cache_write = cache.write().await;
+
                         for sat in sats {
-                            // Check if changed
-                            let obj_id = format!("sat:{}", sat.norad_cat_id);
                             let mut is_changed = true;
 
-                            if let Some(existing) = engine.objects.get(&obj_id) {
-                                if let Some(existing_epoch) = existing.tags.get("epoch") {
-                                    if existing_epoch == &sat.epoch {
-                                        is_changed = false;
-                                    }
+                            if let Some(existing) = cache_write.get(&sat.norad_cat_id) {
+                                if existing.epoch == sat.epoch {
+                                    is_changed = false;
                                 }
                             }
 
                             if is_changed {
-                                if let Ok(obj) = sat_to_tracked_object(&sat) {
-                                    engine.update_object(obj);
-                                    changed.push(sat);
-                                }
+                                cache_write.insert(sat.norad_cat_id, sat.clone());
+                                changed.push(sat);
                             }
                         }
+
+                        drop(cache_write);
 
                         if !changed.is_empty() {
                             info!("Updating {} changed orbital objects in Redis for group {}", changed.len(), group);
@@ -152,22 +153,6 @@ pub async fn start_orbital_harvester(
             }
         }
     });
-}
-
-fn sat_to_tracked_object(sat: &SatelliteGP) -> Result<TrackedObject, Error> {
-    let mut tags = HashMap::new();
-    tags.insert("epoch".to_string(), sat.epoch.clone());
-    tags.insert("orbital_gp".to_string(), serde_json::to_string(sat)?);
-
-    Ok(TrackedObject {
-        id: format!("sat:{}", sat.norad_cat_id),
-        callsign: Some(sat.object_name.clone()),
-        lat: 0.0,
-        lon: 0.0,
-        altitude: 0.0,
-        heading: 0.0,
-        velocity: 0.0,
-        entity_type: EntityType::Orbital,
-        tags,
-    })
+    
+    Ok(())
 }
