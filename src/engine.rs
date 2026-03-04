@@ -1,9 +1,17 @@
+pub mod rest_server;
+
 use dashmap::{DashMap, DashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::time::{interval, Duration};
+use async_trait::async_trait;
+
+#[async_trait]
+pub trait Harvester: Send + Sync {
+    async fn start(&self, engine: Arc<Engine>);
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EntityType {
@@ -11,6 +19,7 @@ pub enum EntityType {
     Vessel,
     SignalNode,
     Orbital,
+    HeatSpot,
     Unknown,
 }
 
