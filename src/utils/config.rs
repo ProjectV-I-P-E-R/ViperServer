@@ -23,8 +23,8 @@ pub struct AppConfig {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct ApiKeys {
-    pub adsb_exchange: String,
     pub ais_stream: String,
+    pub nasa_firms: String,
     pub n2yo: String,
     pub wigle_net_key: String,
     pub wigle_net_name: String,
@@ -35,8 +35,10 @@ pub struct ApiKeys {
 #[derive(Debug, Deserialize, Clone)]
 pub struct ServiceEndpoints {
     pub celestrak_gp: String,
+    pub airplanes_live: String,
+    pub ais_stream: String,
     pub nasa_firms: String,
-    pub overpass_api: String,
+    pub ioda: String,
     pub redis: String,
 }
 
