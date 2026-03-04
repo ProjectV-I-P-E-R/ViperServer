@@ -1,7 +1,15 @@
+use std::collections::HashMap;
 use std::env;
+use std::sync::Arc;
 use anyhow::Error;
+use tokio::sync::RwLock;
+use crate::engine::Harvester;
+use crate::engine::rest_server::ViperRest;
+use crate::harvester::adsb::AdsbHarvester;
+use crate::harvester::ais::AisHarvester;
+use crate::harvester::firms::FirmsHarvester;
+use crate::harvester::orbital::OrbitalCache;
 use crate::utils::config::load_config;
-use crate::utils::http::create_http_client;
 use crate::utils::redis::create_redis_client;
 
 extern crate pretty_env_logger;
@@ -11,6 +19,7 @@ mod comms;
 mod engine;
 mod harvester;
 mod utils;
+
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -28,18 +37,43 @@ async fn main() -> Result<(), Error> {
 
     debug!("VIPER: Configuration loaded. Version: {}", &config.build_version);
 
-    let _http_client = create_http_client(&config)?;
     let redis_client = create_redis_client(&config).await?;
     trace!("VIPER: Redis and HTTP clients initialized.");
 
     let viper_engine = engine::Engine::new();
-    
+    let orbital_cache: OrbitalCache = Arc::new(RwLock::new(HashMap::new()));
+
     harvester::orbital::start_orbital_harvester(
-        viper_engine.clone(),
+        orbital_cache.clone(),
         redis_client.clone(),
         config.clone()
-    ).await;
+    ).await?;
+
+    let mut harvesters: Vec<Box<dyn Harvester>> = Vec::new();
+    harvesters.push(Box::new(AdsbHarvester {
+        config: config.clone(),
+    }));
+
+    harvesters.push(Box::new(AisHarvester {
+        config: config.clone(),
+    }));
     
+    harvesters.push(Box::new(FirmsHarvester {
+        config: config.clone(),
+    }));
+
+    for harvester in harvesters {
+        harvester.start(viper_engine.clone()).await;
+    }
+
+    let rest_cache = orbital_cache.clone();
+    let rest_engine = viper_engine.clone();
+    tokio::spawn(async move {
+        if let Err(e) = ViperRest::start(3000, rest_engine, rest_cache).await {
+            error!("REST server error: {}", e);
+        }
+    });
+
     let addr = "[::0]:50051";
     info!("VIPER: Starting WebSocket server on {}", addr);
     
