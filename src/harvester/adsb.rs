@@ -32,6 +32,7 @@ pub struct AirplanesLiveItem {
     pub track: Option<f32>,
     pub lat: Option<f64>,
     pub lon: Option<f64>,
+    pub nic: Option<u8>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
