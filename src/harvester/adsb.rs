@@ -80,6 +80,13 @@ impl Harvester for AdsbHarvester {
                                     let mut tags = HashMap::new();
                                     if let Some(reg) = ac.r { tags.insert("registration".to_string(), reg); }
                                     if let Some(atype) = ac.t { tags.insert("aircraft_type".to_string(), atype); }
+                                    if let Some(nic_val) = ac.nic {
+                                        tags.insert("nic".to_string(), nic_val.to_string());
+                                        if nic_val < 7 {
+                                            let interference = 7 - nic_val;
+                                            tags.insert("gps_interference".to_string(), interference.to_string());
+                                        }
+                                    }
 
                                     let obj = TrackedObject {
                                         id: format!("adsb:{}", ac.hex),
